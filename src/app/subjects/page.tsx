@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import Button from "./button"; // Import button component
+import Button from "./button";
 
 // Define the Subject type
 export type Subject = {
@@ -28,8 +28,8 @@ const DEFAULT_SUBJECTS: Subject[] = [
 export default function Subjects() {
   const router = useRouter();
   
-  // Initialize state with an empty array to prevent hydration mismatch
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  // Initialize state with DEFAULT_SUBJECTS to prevent empty state
+  const [subjects, setSubjects] = useState<Subject[]>(DEFAULT_SUBJECTS);
   
   // Add state for new fields (Add Form)
   const [subjectName, setSubjectName] = useState("");
@@ -53,6 +53,13 @@ export default function Subjects() {
   const [attendanceError, setAttendanceError] = useState("");
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  
+  // New state for undo tracking
+  const [attendanceHistory, setAttendanceHistory] = useState<{
+    index: number;
+    previousAttended: number;
+    previousTotal: number;
+  } | null>(null);
 
   // Constants
   const dayOptions = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -76,10 +83,17 @@ export default function Subjects() {
     setEditIndex(null);
   }
 
-  // Quick Direct Update for Attendance Counts outside of main Edit Mode
+  // Quick Direct Update for Attendance Counts with undo support
   function updateQuickAttendance(index: number, attended: number, total: number) {
     const updated = subjects.map((sub, i) => {
       if (i === index) {
+        // Store previous state for undo
+        setAttendanceHistory({
+          index,
+          previousAttended: sub.attendedClasses,
+          previousTotal: sub.totalClasses
+        });
+        
         return {
           ...sub,
           attendedClasses: Math.max(0, attended),
@@ -90,6 +104,37 @@ export default function Subjects() {
     });
     localStorage.setItem("subjects", JSON.stringify(updated));
     setSubjects(updated);
+    
+    // Show undo notification
+    setNotification({ 
+      type: 'success', 
+      message: 'Attendance updated! Click Undo to revert.' 
+    });
+  }
+
+  // Undo last attendance change
+  function undoAttendanceChange() {
+    if (!attendanceHistory) return;
+    
+    const { index, previousAttended, previousTotal } = attendanceHistory;
+    const updated = subjects.map((sub, i) => {
+      if (i === index) {
+        return {
+          ...sub,
+          attendedClasses: previousAttended,
+          totalClasses: previousTotal
+        };
+      }
+      return sub;
+    });
+    
+    localStorage.setItem("subjects", JSON.stringify(updated));
+    setSubjects(updated);
+    setAttendanceHistory(null);
+    setNotification({ 
+      type: 'success', 
+      message: 'Attendance change undone!' 
+    });
   }
 
   // CRUD Functions
@@ -118,9 +163,7 @@ export default function Subjects() {
       totalClasses: 0,
     };
 
-    const currentSubjects = localStorage.getItem("subjects");
-    const updatedSubjects: Subject[] = currentSubjects ? JSON.parse(currentSubjects) : [];
-    updatedSubjects.push(newSubject);
+    const updatedSubjects = [...subjects, newSubject];
     
     localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
     setSubjects(updatedSubjects);
@@ -135,17 +178,14 @@ export default function Subjects() {
   }
 
   function removeSubject(itemIndex: number) {
-    const currentSubjects = localStorage.getItem("subjects");
-    if (currentSubjects) {
-      const subjectsArray: Subject[] = JSON.parse(currentSubjects);
-      const updatedSubjects = subjectsArray.filter((_, index) => index !== itemIndex);
-      localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
-      setSubjects(updatedSubjects);
-      
-      if (editIndex === itemIndex) {
-        handleCloseEdit();
-      }
+    const updatedSubjects = subjects.filter((_, index) => index !== itemIndex);
+    localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
+    setSubjects(updatedSubjects);
+    
+    if (editIndex === itemIndex) {
+      handleCloseEdit();
     }
+    setNotification({ type: 'success', message: 'Subject removed successfully!' });
   }
 
   function submitEditSubject(itemIndex: number) {
@@ -155,30 +195,25 @@ export default function Subjects() {
       return;
     }
 
-    const currentSubjects = localStorage.getItem("subjects");
-    if (currentSubjects) {
-      const subjectsArray: Subject[] = JSON.parse(currentSubjects);
-      
-      const updatedSubjects = subjectsArray.map((subject, index) => {
-        if (index === itemIndex) {
-          return {
-            ...subject,
-            name: trimmedName,
-            days: editSelectedDays,
-            timing: editStartTime && editEndTime ? { start: editStartTime, end: editEndTime } : undefined,
-            requiredAttendance: editRequiredAttendance ? Number(editRequiredAttendance) : undefined,
-            attendedClasses: Number(editAttendedClasses) || 0,
-            totalClasses: Number(editTotalClasses) || 0
-          };
-        }
-        return subject;
-      });
+    const updatedSubjects = subjects.map((subject, index) => {
+      if (index === itemIndex) {
+        return {
+          ...subject,
+          name: trimmedName,
+          days: editSelectedDays,
+          timing: editStartTime && editEndTime ? { start: editStartTime, end: editEndTime } : undefined,
+          requiredAttendance: editRequiredAttendance ? Number(editRequiredAttendance) : undefined,
+          attendedClasses: Number(editAttendedClasses) || 0,
+          totalClasses: Number(editTotalClasses) || 0
+        };
+      }
+      return subject;
+    });
 
-      localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
-      setSubjects(updatedSubjects);
-      setNotification({ type: 'success', message: 'Subject updated successfully!' });
-      handleCloseEdit();
-    }
+    localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
+    setSubjects(updatedSubjects);
+    setNotification({ type: 'success', message: 'Subject updated successfully!' });
+    handleCloseEdit();
   }
 
   function handleCancel() {
@@ -211,13 +246,27 @@ export default function Subjects() {
     if (typeof window !== "undefined") {
       const subjectsData = localStorage.getItem("subjects");
       if (subjectsData) {
-        setSubjects(JSON.parse(subjectsData));
+        try {
+          const parsed = JSON.parse(subjectsData);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setSubjects(parsed);
+          } else {
+            // If localStorage is empty or invalid, use defaults
+            localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
+            setSubjects(DEFAULT_SUBJECTS);
+          }
+        } catch (e) {
+          // If JSON parse fails, use defaults
+          localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
+          setSubjects(DEFAULT_SUBJECTS);
+        }
       } else {
+        // No data in localStorage, initialize with defaults
         localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
         setSubjects(DEFAULT_SUBJECTS);
       }
     }
-  }, [router]);
+  }, []);
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-start bg-gradient-to-b from-[#0f172a] to-[#020617] overflow-x-hidden">
@@ -283,8 +332,17 @@ export default function Subjects() {
         {/* Notifications and Modals */}
         <AnimatePresence>
           {notification && (
-            <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className={`fixed top-6 left-1/2 z-50 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg text-white font-semibold ${notification.type === 'success' ? 'bg-gradient-to-r from-[#22c55e] to-[#38bdf8]' : 'bg-gradient-to-r from-red-500 to-pink-500'}`} onClick={closeNotification}>
-              {notification.message}
+            <motion.div initial={{ opacity: 0, y: -30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -30 }} className="fixed top-6 left-1/2 z-50 transform -translate-x-1/2 px-6 py-3 rounded-xl shadow-lg text-white font-semibold flex items-center gap-4" style={{ background: notification.type === 'success' ? 'linear-gradient(to right, #22c55e, #38bdf8)' : 'linear-gradient(to right, #ef4444, #ec4899)' }}>
+              <span>{notification.message}</span>
+              {attendanceHistory && (
+                <button 
+                  onClick={undoAttendanceChange}
+                  className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg text-sm font-bold transition-all"
+                >
+                  ↩ Undo
+                </button>
+              )}
+              <button onClick={closeNotification} className="ml-2 hover:opacity-80">✕</button>
             </motion.div>
           )}
           {showCancelModal && (
@@ -399,12 +457,14 @@ export default function Subjects() {
                         <button 
                           onClick={() => updateQuickAttendance(index, subject.attendedClasses + 1, subject.totalClasses + 1)} 
                           className="bg-green-600/30 hover:bg-green-600/50 text-green-400 text-xs px-2 py-1 rounded font-bold border border-green-500/30"
+                          title="Mark as attended"
                         >
                           + Attended
                         </button>
                         <button 
                           onClick={() => updateQuickAttendance(index, subject.attendedClasses, subject.totalClasses + 1)} 
                           className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs px-2 py-1 rounded font-bold border border-red-500/20"
+                          title="Mark as missed"
                         >
                           + Missed
                         </button>
