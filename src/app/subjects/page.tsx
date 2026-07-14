@@ -20,7 +20,8 @@ const DEFAULT_SUBJECTS: Subject[] = [
   { name: "IT (Information Technology)", days: ["Tue"], timing: { start: "11:15", end: "12:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
   { name: "MM&HRM (Marketing & HR)", days: ["Tue", "Wed", "Thu"], timing: { start: "12:15", end: "13:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
   { name: "EVS (Environmental Studies)", days: ["Wed"], timing: { start: "13:45", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
-  { name: "COST 1 (Cost Accounting)", days: ["Thu", "Sat"], timing: { start: "12:15", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "COST I (Cost Accounting) - Class 1", days: ["Thu", "Sat"], timing: { start: "12:15", end: "13:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "COST I (Cost Accounting) - Class 2", days: ["Sat"], timing: { start: "13:15", end: "14:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
   { name: "ENG (English)", days: ["Sat"], timing: { start: "11:15", end: "12:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 }
 ];
 
