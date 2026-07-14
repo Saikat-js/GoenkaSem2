@@ -40,13 +40,19 @@ export default function Dashboard() {
     }
 
     if (subjectData) {
-      const parsedSubjects = JSON.parse(subjectData);
-      // Explicitly typing this as the updated Subject layout to align properly
-      const safeSubjects: Subject[] = parsedSubjects.map((s: any) => ({
-        ...s,
-        attendedClasses: s.attendedClasses ?? 0,
-        totalClasses: s.totalClasses ?? 0,
+      // 1. Tell TypeScript this is an array of unknown objects from JSON
+      const parsedSubjects = JSON.parse(subjectData) as Record<string, unknown>[];
+      
+      // 2. Map over them safely without using 'any'
+      const safeSubjects: Subject[] = parsedSubjects.map((s) => ({
+        name: typeof s.name === "string" ? s.name : "Unknown Subject",
+        days: Array.isArray(s.days) ? (s.days as string[]) : [],
+        timing: s.timing ? (s.timing as { start: string; end: string }) : undefined,
+        requiredAttendance: typeof s.requiredAttendance === "number" ? s.requiredAttendance : undefined,
+        attendedClasses: typeof s.attendedClasses === "number" ? s.attendedClasses : 0,
+        totalClasses: typeof s.totalClasses === "number" ? s.totalClasses : 0,
       }));
+      
       setSubjects(safeSubjects);
     }
 
