@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -45,6 +45,33 @@ export default function SettingsPage() {
     }
   }, []);
 
+  // Perform reset function (memoized with useCallback to fix dependency warning)
+  const performReset = useCallback(() => {
+    // Keep user data but clear all other data
+    const userData = localStorage.getItem("user");
+    localStorage.clear();
+    
+    // Restore user data if it existed
+    if (userData) {
+      localStorage.setItem("user", userData);
+    }
+    
+    setShowConfirmReset(false);
+    setIsResetting(false);
+    setResetTimer(5);
+    
+    // Reset form fields
+    setDefaultAttendancePercentage("75");
+    setTheme("dark");
+    setNotificationsEnabled(true);
+    setSemester("");
+    setSection("");
+    setCourse("");
+    
+    alert("All data has been reset. You&apos;ll be redirected to the landing page.");
+    setTimeout(() => router.push("/landing"), 1500);
+  }, [router]);
+
   // Countdown timer for reset
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -56,7 +83,7 @@ export default function SettingsPage() {
       performReset();
     }
     return () => clearInterval(timer);
-  }, [isResetting, resetTimer]);
+  }, [isResetting, resetTimer, performReset]);
 
   // Save individual setting
   const saveSetting = (key: string, value: string) => {
@@ -94,32 +121,6 @@ export default function SettingsPage() {
     setShowConfirmReset(false);
     setIsResetting(false);
     setResetTimer(5);
-  };
-
-  const performReset = () => {
-    // Keep user data but clear all other data
-    const userData = localStorage.getItem("user");
-    localStorage.clear();
-    
-    // Restore user data if it existed
-    if (userData) {
-      localStorage.setItem("user", userData);
-    }
-    
-    setShowConfirmReset(false);
-    setIsResetting(false);
-    setResetTimer(5);
-    
-    // Reset form fields
-    setDefaultAttendancePercentage("75");
-    setTheme("dark");
-    setNotificationsEnabled(true);
-    setSemester("");
-    setSection("");
-    setCourse("");
-    
-    alert("All data has been reset. You'll be redirected to the landing page.");
-    setTimeout(() => router.push("/landing"), 1500);
   };
 
   const handleLogout = () => {
@@ -448,7 +449,7 @@ export default function SettingsPage() {
                 <div className="text-4xl mb-3">👋</div>
                 <h3 className="text-xl font-bold text-white mb-2">Ready to Leave?</h3>
                 <p className="text-gray-400">
-                  You'll be logged out and redirected to the landing page.
+                  You&apos;ll be logged out and redirected to the landing page.
                 </p>
               </div>
               
