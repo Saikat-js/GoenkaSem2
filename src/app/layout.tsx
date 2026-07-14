@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bunkify - Smart Attendance",
-  description: "Effortlessly track attendance with Bunkify – smart, intuitive, and student-friendly.",
+  title: "BunkMaster",
+  description: "Effortlessly track attendance with Bunkify – smart, intuitive, and student-friendly built by Saikat.",
 };
 
 export default function RootLayout({
