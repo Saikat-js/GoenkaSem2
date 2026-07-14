@@ -10,8 +10,8 @@ export type Subject = {
   days: string[];
   timing?: { start: string; end: string };
   requiredAttendance?: number;
-  attendedClasses?: number;
-  totalClasses?: number;
+  attendedClasses: number;
+  totalClasses: number;
 };
 
 // Pre-defined hardcoded subjects for B.COM. SEMESTER - II (DAY) Section C - (N3)
@@ -28,7 +28,7 @@ const DEFAULT_SUBJECTS: Subject[] = [
 export default function Subjects() {
   const router = useRouter();
   
-  // State for Subjects list
+  // Initialize state with an empty array to prevent hydration mismatch
   const [subjects, setSubjects] = useState<Subject[]>([]);
   
   // Add state for new fields (Add Form)
@@ -46,6 +46,8 @@ export default function Subjects() {
   const [editStartTime, setEditStartTime] = useState("");
   const [editEndTime, setEditEndTime] = useState("");
   const [editRequiredAttendance, setEditRequiredAttendance] = useState<string>("");
+  const [editAttendedClasses, setEditAttendedClasses] = useState<string>("0");
+  const [editTotalClasses, setEditTotalClasses] = useState<string>("0");
 
   // UI States
   const [attendanceError, setAttendanceError] = useState("");
@@ -72,6 +74,22 @@ export default function Subjects() {
   function handleCloseEdit() {
     setIsEditing(false);
     setEditIndex(null);
+  }
+
+  // Quick Direct Update for Attendance Counts outside of main Edit Mode
+  function updateQuickAttendance(index: number, attended: number, total: number) {
+    const updated = subjects.map((sub, i) => {
+      if (i === index) {
+        return {
+          ...sub,
+          attendedClasses: Math.max(0, attended),
+          totalClasses: Math.max(0, total)
+        };
+      }
+      return sub;
+    });
+    localStorage.setItem("subjects", JSON.stringify(updated));
+    setSubjects(updated);
   }
 
   // CRUD Functions
@@ -149,6 +167,8 @@ export default function Subjects() {
             days: editSelectedDays,
             timing: editStartTime && editEndTime ? { start: editStartTime, end: editEndTime } : undefined,
             requiredAttendance: editRequiredAttendance ? Number(editRequiredAttendance) : undefined,
+            attendedClasses: Number(editAttendedClasses) || 0,
+            totalClasses: Number(editTotalClasses) || 0
           };
         }
         return subject;
@@ -186,13 +206,13 @@ export default function Subjects() {
     setNotification(null);
   }
 
+  // Safely mount and synchronize state with localStorage once client-side
   useEffect(() => {
     if (typeof window !== "undefined") {
       const subjectsData = localStorage.getItem("subjects");
       if (subjectsData) {
         setSubjects(JSON.parse(subjectsData));
       } else {
-        // Seed with sample data if localStorage is completely blank
         localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
         setSubjects(DEFAULT_SUBJECTS);
       }
@@ -289,94 +309,135 @@ export default function Subjects() {
         </motion.h1>
 
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 w-full max-w-xs sm:max-w-2xl lg:max-w-6xl px-2 sm:px-0">
-          {subjects.map((subject, index) => (
-            <motion.div key={index} className="relative glass rounded-3xl shadow-2xl p-4 sm:p-7 border border-[#232a3a] bg-gradient-to-br from-[#232a3a]/80 to-[#232a3a]/60 backdrop-blur-xl transition-all group min-h-[180px] sm:min-h-[220px] flex flex-col justify-between" style={{ boxShadow: "0 4px 32px 0 rgba(99,102,241,0.13)" }}>
-              
-              {/* Close Edit Button */}
-              {isEditing && editIndex === index && (
-                <button onClick={handleCloseEdit} className="absolute top-2 right-4 text-gray-500 hover:text-red-500 text-3xl font-bold focus:outline-none z-10">&times;</button>
-              )}
-
-              {/* Edit Mode vs Display Mode */}
-              {isEditing && editIndex === index ? (
-                <div className="flex flex-col gap-3 mt-4">
-                  <input type="text" className="border border-[#38bdf8] rounded-lg px-3 py-2 w-full focus:outline-none bg-[#181c25] text-white font-semibold" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Subject name" />
-                  
-                  {/* Edit Days */}
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {dayOptions.map(day => (
-                      <label key={day} className={`text-xs px-2 py-1 rounded cursor-pointer border ${editSelectedDays.includes(day) ? 'bg-[#38bdf8] text-[#181c25] border-[#38bdf8]' : 'bg-[#232a3a] text-white border-gray-600'}`}>
-                        <input type="checkbox" checked={editSelectedDays.includes(day)} onChange={() => handleEditDayChange(day)} className="hidden" />
-                        {day}
-                      </label>
-                    ))}
-                  </div>
-
-                  {/* Edit Timing */}
-                  <div className="flex gap-2 items-center mt-1">
-                    <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-24" />
-                    <span className="text-white text-xs">-</span>
-                    <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-24" />
-                  </div>
-
-                  {/* Edit Attendance */}
-                  <div className="flex items-center gap-2 mt-1">
-                     <span className="text-white text-xs">Required %:</span>
-                     <input type="number" min={0} max={100} value={editRequiredAttendance} onChange={e => setEditRequiredAttendance(e.target.value)} placeholder="75" className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-16" />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {/* Display Mode */}
-                  <div className="mb-2 flex items-center gap-2">
-                    <h2 className="text-xl font-extrabold text-white bg-gradient-to-r from-[#6366f1] via-[#38bdf8] to-[#22c55e] bg-clip-text text-transparent drop-shadow-lg flex-1 truncate">{subject.name}</h2>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {subject.days && subject.days.length > 0 && subject.days.map(day => (
-                      <span key={day} className="px-3 py-1 rounded-full bg-gradient-to-r from-[#6366f1] to-[#22c55e] text-white text-xs font-semibold shadow border border-[#232a3a]">{day}</span>
-                    ))}
-                  </div>
-                  
-                  <div className="flex flex-col gap-1 mb-3">
-                    {subject.timing && (
-                      <div className="flex items-center gap-2 text-sm text-[#38bdf8] font-medium">
-                        <svg width="18" height="18" viewBox="0 0 48 48" className="inline-block"><circle cx="24" cy="24" r="9" fill="#38bdf8" opacity="0.7" /><path d="M24 20v5l3 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                        <span>{subject.timing.start} - {subject.timing.end}</span>
-                      </div>
-                    )}
-                    {typeof subject.requiredAttendance === 'number' && (
-                      <div className="flex items-center gap-2 text-xs text-[#22c55e] font-semibold">
-                        <svg width="16" height="16" viewBox="0 0 48 48" className="inline-block"><circle cx="24" cy="24" r="7" fill="#22c55e" opacity="0.7" /><path d="M18 24l4 4 6-7" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>
-                        <span>🎯 Required Attendance: {subject.requiredAttendance}%</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-row justify-between items-center mt-auto pt-4 gap-2">
-                <Button onClick={() => removeSubject(index)} content="Remove" />
-                {isEditing && editIndex === index ? (
-                  <Button onClick={() => submitEditSubject(index)} content="Save" />
-                ) : (
-                  <Button
-                    onClick={() => {
-                      setIsEditing(true);
-                      setEditIndex(index);
-                      setEditName(subject.name);
-                      setEditSelectedDays(subject.days || []);
-                      setEditStartTime(subject.timing?.start || "");
-                      setEditEndTime(subject.timing?.end || "");
-                      setEditRequiredAttendance(subject.requiredAttendance !== undefined ? subject.requiredAttendance.toString() : "");
-                    }}
-                    content="Edit"
-                  />
+          {subjects.map((subject, index) => {
+            const currentPercent = subject.totalClasses > 0 ? Math.round((subject.attendedClasses / subject.totalClasses) * 100) : 0;
+            
+            return (
+              <motion.div key={index} className="relative glass rounded-3xl shadow-2xl p-4 sm:p-7 border border-[#232a3a] bg-gradient-to-br from-[#232a3a]/80 to-[#232a3a]/60 backdrop-blur-xl transition-all group min-h-[220px] flex flex-col justify-between" style={{ boxShadow: "0 4px 32px 0 rgba(99,102,241,0.13)" }}>
+                
+                {/* Close Edit Button */}
+                {isEditing && editIndex === index && (
+                  <button onClick={handleCloseEdit} className="absolute top-2 right-4 text-gray-500 hover:text-red-500 text-3xl font-bold focus:outline-none z-10">&times;</button>
                 )}
-              </div>
-            </motion.div>
-          ))}
+
+                {/* Edit Mode vs Display Mode */}
+                {isEditing && editIndex === index ? (
+                  <div className="flex flex-col gap-3 mt-4">
+                    <input type="text" className="border border-[#38bdf8] rounded-lg px-3 py-2 w-full focus:outline-none bg-[#181c25] text-white font-semibold" value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Subject name" />
+                    
+                    {/* Edit Days */}
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {dayOptions.map(day => (
+                        <label key={day} className={`text-xs px-2 py-1 rounded cursor-pointer border ${editSelectedDays.includes(day) ? 'bg-[#38bdf8] text-[#181c25] border-[#38bdf8]' : 'bg-[#232a3a] text-white border-gray-600'}`}>
+                          <input type="checkbox" checked={editSelectedDays.includes(day)} onChange={() => handleEditDayChange(day)} className="hidden" />
+                          {day}
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Edit Timing */}
+                    <div className="flex gap-2 items-center mt-1">
+                      <input type="time" value={editStartTime} onChange={e => setEditStartTime(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-24" />
+                      <span className="text-white text-xs">-</span>
+                      <input type="time" value={editEndTime} onChange={e => setEditEndTime(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-24" />
+                    </div>
+
+                    {/* Edit Attendance Percent */}
+                    <div className="flex items-center gap-2 mt-1">
+                       <span className="text-white text-xs">Required %:</span>
+                       <input type="number" min={0} max={100} value={editRequiredAttendance} onChange={e => setEditRequiredAttendance(e.target.value)} placeholder="75" className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-16" />
+                    </div>
+
+                    {/* Edit Previous Logged History Data */}
+                    <div className="grid grid-cols-2 gap-2 mt-1 bg-[#181c25]/50 p-2 rounded-lg border border-gray-700">
+                      <div>
+                        <span className="text-gray-400 text-[10px] block mb-1">Attended Classes</span>
+                        <input type="number" min={0} value={editAttendedClasses} onChange={e => setEditAttendedClasses(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-full" />
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[10px] block mb-1">Total Conducted</span>
+                        <input type="number" min={0} value={editTotalClasses} onChange={e => setEditTotalClasses(e.target.value)} className="rounded p-1 bg-[#181c25] text-white border border-gray-600 text-xs focus:outline-none w-full" />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Display Mode */}
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        <h2 className="text-xl font-extrabold text-white bg-gradient-to-r from-[#6366f1] via-[#38bdf8] to-[#22c55e] bg-clip-text text-transparent drop-shadow-lg flex-1 truncate">{subject.name}</h2>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {subject.days && subject.days.length > 0 && subject.days.map(day => (
+                          <span key={day} className="px-3 py-1 rounded-full bg-gradient-to-r from-[#6366f1] to-[#22c55e] text-white text-xs font-semibold shadow border border-[#232a3a]">{day}</span>
+                        ))}
+                      </div>
+                      
+                      <div className="flex flex-col gap-1 mb-3">
+                        {subject.timing && (
+                          <div className="flex items-center gap-2 text-sm text-[#38bdf8] font-medium">
+                            <svg width="18" height="18" viewBox="0 0 48 48" className="inline-block"><circle cx="24" cy="24" r="9" fill="#38bdf8" opacity="0.7" /><path d="M24 20v5l3 3" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                            <span>{subject.timing.start} - {subject.timing.end}</span>
+                          </div>
+                        )}
+                        {typeof subject.requiredAttendance === 'number' && (
+                          <div className="flex items-center gap-2 text-xs text-[#22c55e] font-semibold">
+                            <svg width="16" height="16" viewBox="0 0 48 48" className="inline-block"><circle cx="24" cy="24" r="7" fill="#22c55e" opacity="0.7" /><path d="M18 24l4 4 6-7" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" /></svg>
+                            <span>🎯 Target: {subject.requiredAttendance}% | Current: <span className={currentPercent >= subject.requiredAttendance ? "text-green-400" : "text-amber-400"}>{currentPercent}%</span></span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quick Access Tracker Logs Counter Box */}
+                    <div className="bg-[#181c25]/70 p-3 rounded-xl border border-gray-700/60 my-2 flex items-center justify-between gap-2">
+                      <div className="text-xs text-gray-300">
+                        Log: <strong className="text-white">{subject.attendedClasses}</strong> / {subject.totalClasses} classes
+                      </div>
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => updateQuickAttendance(index, subject.attendedClasses + 1, subject.totalClasses + 1)} 
+                          className="bg-green-600/30 hover:bg-green-600/50 text-green-400 text-xs px-2 py-1 rounded font-bold border border-green-500/30"
+                        >
+                          + Attended
+                        </button>
+                        <button 
+                          onClick={() => updateQuickAttendance(index, subject.attendedClasses, subject.totalClasses + 1)} 
+                          className="bg-red-600/20 hover:bg-red-600/40 text-red-400 text-xs px-2 py-1 rounded font-bold border border-red-500/20"
+                        >
+                          + Missed
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-row justify-between items-center mt-auto pt-4 gap-2">
+                  <Button onClick={() => removeSubject(index)} content="Remove" />
+                  {isEditing && editIndex === index ? (
+                    <Button onClick={() => submitEditSubject(index)} content="Save" />
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        setIsEditing(true);
+                        setEditIndex(index);
+                        setEditName(subject.name);
+                        setEditSelectedDays(subject.days || []);
+                        setEditStartTime(subject.timing?.start || "");
+                        setEditEndTime(subject.timing?.end || "");
+                        setEditRequiredAttendance(subject.requiredAttendance !== undefined ? subject.requiredAttendance.toString() : "");
+                        setEditAttendedClasses(subject.attendedClasses.toString());
+                        setEditTotalClasses(subject.totalClasses.toString());
+                      }}
+                      content="Edit"
+                    />
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </motion.div>
       </motion.div>
     </div>
