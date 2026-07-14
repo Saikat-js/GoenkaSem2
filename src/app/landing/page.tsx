@@ -297,7 +297,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="w-full py-6 flex flex-col items-center gap-2 text-body text-xs opacity-80 relative z-10">
         <div>
-          © 2025 <span className="font-bold text-white">Bunkify</span>. Made with <span className="text-red-500">❤️</span> by Saikat
+          © 2026 <span className="font-bold text-white">Bunkify</span>. Made with <span className="text-red-500">❤️</span> by Saikat
         </div>
       </footer>
     </div>
