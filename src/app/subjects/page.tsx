@@ -14,6 +14,17 @@ export type Subject = {
   totalClasses?: number;
 };
 
+// Pre-defined hardcoded subjects for B.COM. SEMESTER - II (DAY) Section C - (N3)
+const DEFAULT_SUBJECTS: Subject[] = [
+  { name: "MACRO (Macroeconomics)", days: ["Mon", "Tue", "Wed"], timing: { start: "11:15", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "VOLSE (Life Skill Education)", days: ["Mon"], timing: { start: "13:45", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "IT (Information Technology)", days: ["Tue"], timing: { start: "11:15", end: "12:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "MM&HRM (Marketing & HR)", days: ["Tue", "Wed", "Thu"], timing: { start: "12:15", end: "13:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "EVS (Environmental Studies)", days: ["Wed"], timing: { start: "13:45", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "COST 1 (Cost Accounting)", days: ["Thu", "Sat"], timing: { start: "12:15", end: "14:45" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 },
+  { name: "ENG (English)", days: ["Sat"], timing: { start: "11:15", end: "12:15" }, requiredAttendance: 75, attendedClasses: 0, totalClasses: 0 }
+];
+
 export default function Subjects() {
   const router = useRouter();
   
@@ -108,12 +119,11 @@ export default function Subjects() {
   function removeSubject(itemIndex: number) {
     const currentSubjects = localStorage.getItem("subjects");
     if (currentSubjects) {
-      const subjects: Subject[] = JSON.parse(currentSubjects);
-      const updatedSubjects = subjects.filter((_, index) => index !== itemIndex);
+      const subjectsArray: Subject[] = JSON.parse(currentSubjects);
+      const updatedSubjects = subjectsArray.filter((_, index) => index !== itemIndex);
       localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
       setSubjects(updatedSubjects);
       
-      // Close edit form if they delete the item they are currently editing
       if (editIndex === itemIndex) {
         handleCloseEdit();
       }
@@ -129,9 +139,9 @@ export default function Subjects() {
 
     const currentSubjects = localStorage.getItem("subjects");
     if (currentSubjects) {
-      const subjects: Subject[] = JSON.parse(currentSubjects);
+      const subjectsArray: Subject[] = JSON.parse(currentSubjects);
       
-      const updatedSubjects = subjects.map((subject, index) => {
+      const updatedSubjects = subjectsArray.map((subject, index) => {
         if (index === itemIndex) {
           return {
             ...subject,
@@ -181,6 +191,10 @@ export default function Subjects() {
       const subjectsData = localStorage.getItem("subjects");
       if (subjectsData) {
         setSubjects(JSON.parse(subjectsData));
+      } else {
+        // Seed with sample data if localStorage is completely blank
+        localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
+        setSubjects(DEFAULT_SUBJECTS);
       }
     }
   }, [router]);
@@ -237,6 +251,8 @@ export default function Subjects() {
 
           <motion.label className="text-white font-semibold mt-2">Required Attendance % <span className="text-gray-400 text-xs">(optional)</span></motion.label>
           <input type="number" min={0} max={100} value={requiredAttendance} onChange={e => setRequiredAttendance(e.target.value)} placeholder="e.g. 75" className="rounded-lg p-2 bg-[#181c25] text-white border border-gray-600 focus:outline-none w-32" />
+          
+          {attendanceError && <span className="text-red-400 text-xs mt-1">{attendanceError}</span>}
 
           <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mt-4 w-full">
             <Button onClick={addSubject} content="Add Subject" />
@@ -349,7 +365,6 @@ export default function Subjects() {
                     onClick={() => {
                       setIsEditing(true);
                       setEditIndex(index);
-                      // Pre-fill the edit states with existing data
                       setEditName(subject.name);
                       setEditSelectedDays(subject.days || []);
                       setEditStartTime(subject.timing?.start || "");
