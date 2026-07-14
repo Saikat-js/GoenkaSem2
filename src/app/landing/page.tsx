@@ -190,7 +190,7 @@ export default function LandingPage() {
           transition={{ duration: 0.8 }}
           className="text-5xl sm:text-7xl font-extrabold mb-4 bg-gradient-to-r from-[#6366f1] via-[#38bdf8] to-[#22c55e] bg-clip-text text-transparent drop-shadow-lg"
         >
-          Bunkify
+          BunkMaster
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 40 }}
@@ -261,7 +261,7 @@ export default function LandingPage() {
           transition={{ duration: 0.7 }}
           className="text-body text-sm mb-4"
         >
-          Built by students, for students. 100% open-source.
+          Built by Saikat
         </motion.p>
         <div className="flex flex-row justify-center items-center gap-4">
           <motion.a
@@ -269,7 +269,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            href="https://github.com/hacknrollers/bunkify"
+            href="https://github.com/Saikat-js"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block rounded-full px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#22c55e] text-white font-semibold shadow hover:from-[#6366f1] hover:to-[#38bdf8] hover:scale-105 transition-all flex items-center gap-2"
@@ -283,7 +283,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            href="https://discord.gg/XnKbVYXH"
+            href="https://discord.com/users/1173471495918465065"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block rounded-full px-6 py-2 bg-gradient-to-r from-[#6366f1] to-[#22c55e] text-white font-semibold shadow hover:from-[#6366f1] hover:to-[#38bdf8] hover:scale-105 transition-all flex items-center gap-2"
@@ -297,7 +297,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="w-full py-6 flex flex-col items-center gap-2 text-body text-xs opacity-80 relative z-10">
         <div>
-          © 2025 <span className="font-bold text-white">Bunkify</span>. Made with <span className="text-red-500">❤️</span> by fellow devs.
+          © 2025 <span className="font-bold text-white">Bunkify</span>. Made with <span className="text-red-500">❤️</span> by Saikat
         </div>
       </footer>
     </div>
