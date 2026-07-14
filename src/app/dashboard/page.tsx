@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SubjectCard from "@/components/SubjectCard";
 
+// Updated type: made attendedClasses and totalClasses strict numbers (no optional '?')
 type Subject = {
   name: string;
   days: string[];
   timing?: { start: string; end: string };
   requiredAttendance?: number;
-  attendedClasses?: number;
-  totalClasses?: number;
+  attendedClasses: number; 
+  totalClasses: number;    
 };
 
 type User = {
@@ -39,8 +40,9 @@ export default function Dashboard() {
     }
 
     if (subjectData) {
-      const parsedSubjects: Subject[] = JSON.parse(subjectData);
-      const safeSubjects = parsedSubjects.map((s) => ({
+      const parsedSubjects = JSON.parse(subjectData);
+      // Explicitly typing this as the updated Subject layout to align properly
+      const safeSubjects: Subject[] = parsedSubjects.map((s: any) => ({
         ...s,
         attendedClasses: s.attendedClasses ?? 0,
         totalClasses: s.totalClasses ?? 0,
@@ -57,10 +59,10 @@ export default function Dashboard() {
     const subject = updatedSubjects[index];
 
     if (type === "present") {
-      subject.attendedClasses! += 1;
-      subject.totalClasses! += 1;
+      subject.attendedClasses += 1;
+      subject.totalClasses += 1;
     } else if (type === "absent") {
-      subject.totalClasses! += 1;
+      subject.totalClasses += 1;
     }
 
     setSubjects(updatedSubjects);
