@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Button from "./button";
 
@@ -26,8 +25,6 @@ const DEFAULT_SUBJECTS: Subject[] = [
 ];
 
 export default function Subjects() {
-  const router = useRouter();
-  
   // Initialize state with DEFAULT_SUBJECTS to prevent empty state
   const [subjects, setSubjects] = useState<Subject[]>(DEFAULT_SUBJECTS);
   
@@ -255,7 +252,7 @@ export default function Subjects() {
             localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
             setSubjects(DEFAULT_SUBJECTS);
           }
-        } catch (e) {
+        } catch {
           // If JSON parse fails, use defaults
           localStorage.setItem("subjects", JSON.stringify(DEFAULT_SUBJECTS));
           setSubjects(DEFAULT_SUBJECTS);
