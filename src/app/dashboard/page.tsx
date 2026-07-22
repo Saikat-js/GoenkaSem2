@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import SubjectCard from "@/components/SubjectCard";
 
-// Updated type: made attendedClasses and totalClasses strict numbers (no optional '?')
 type Subject = {
   name: string;
   days: string[];
@@ -40,10 +39,8 @@ export default function Dashboard() {
     }
 
     if (subjectData) {
-      // 1. Tell TypeScript this is an array of unknown objects from JSON
       const parsedSubjects = JSON.parse(subjectData) as Record<string, unknown>[];
       
-      // 2. Map over them safely without using 'any'
       const safeSubjects: Subject[] = parsedSubjects.map((s) => ({
         name: typeof s.name === "string" ? s.name : "Unknown Subject",
         days: Array.isArray(s.days) ? (s.days as string[]) : [],
@@ -60,26 +57,32 @@ export default function Dashboard() {
     if (marked) setMarkedSubjects(JSON.parse(marked));
   }, [router, todayStr]);
 
-  const handleMarkAttendance = (index: number, type: "present" | "absent" | "no-class") => {
-    const updatedSubjects = [...subjects];
-    const subject = updatedSubjects[index];
+  // Handle attendance updates using the main state array index
+  const handleMarkAttendance = (originalIndex: number, type: "present" | "absent" | "no-class") => {
+    // Clone array deeply enough to avoid direct state mutation
+    const updatedSubjects = subjects.map((sub, idx) => {
+      if (idx !== originalIndex) return sub;
 
-    if (type === "present") {
-      subject.attendedClasses += 1;
-      subject.totalClasses += 1;
-    } else if (type === "absent") {
-      subject.totalClasses += 1;
-    }
+      const newAttended = type === "present" ? sub.attendedClasses + 1 : sub.attendedClasses;
+      const newTotal = type === "present" || type === "absent" ? sub.totalClasses + 1 : sub.totalClasses;
+
+      return {
+        ...sub,
+        attendedClasses: newAttended,
+        totalClasses: newTotal,
+      };
+    });
 
     setSubjects(updatedSubjects);
     localStorage.setItem("subjects", JSON.stringify(updatedSubjects));
 
-    const updatedMarked = [...markedSubjects, index];
-    setMarkedSubjects(updatedMarked);
-    localStorage.setItem(`marked-${todayStr}`, JSON.stringify(updatedMarked));
+    // Store original index so the button stays disabled/marked today
+    if (!markedSubjects.includes(originalIndex)) {
+      const updatedMarked = [...markedSubjects, originalIndex];
+      setMarkedSubjects(updatedMarked);
+      localStorage.setItem(`marked-${todayStr}`, JSON.stringify(updatedMarked));
+    }
   };
-
-  const todaySubjects = subjects.filter((subject) => subject.days.includes(todayStr));
 
   if (!user) return null;
 
@@ -90,19 +93,25 @@ export default function Dashboard() {
       </h1>
       <p className="text-lg sm:text-xl text-body mb-6">Today&apos;s Attendance - {todayStr}</p>
 
-      {todaySubjects.length === 0 ? (
+      {/* Map through original array, keeping track of the original index */}
+      {subjects.filter((s) => s.days.includes(todayStr)).length === 0 ? (
         <p className="text-white text-lg">No classes today, take a break! 🎉</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl">
-          {todaySubjects.map((subject, index) => (
-            <SubjectCard
-              key={index}
-              subject={subject}
-              index={index}
-              onMark={handleMarkAttendance}
-              marked={markedSubjects.includes(index)}
-            />
-          ))}
+          {subjects.map((subject, originalIndex) => {
+            // Only render subjects scheduled for today
+            if (!subject.days.includes(todayStr)) return null;
+
+            return (
+              <SubjectCard
+                key={subject.name + originalIndex}
+                subject={subject}
+                index={originalIndex} // <-- Pass the actual index in `subjects`
+                onMark={handleMarkAttendance}
+                marked={markedSubjects.includes(originalIndex)}
+              />
+            );
+          })}
         </div>
       )}
     </div>
